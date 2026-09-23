@@ -286,6 +286,58 @@ function AcademicPortal() {
     return map;
   }, [students]);
 
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportPdf() {
+    setExporting(true);
+    try {
+      const details: { label: string; value: string }[] =
+        level === "school"
+          ? [
+              { label: "Institution", value: schoolName },
+              { label: "Type", value: "School" },
+              { label: "Class", value: className ? `Class ${className}` : "—" },
+            ]
+          : [
+              { label: "Institution", value: collegeName },
+              { label: "Type", value: "College" },
+              {
+                label: "Stream",
+                value: streamKey ? getStreamLabel(streamKey) : "—",
+              },
+              { label: "Course", value: selectedCourse?.name ?? "—" },
+              { label: "Year", value: year ? `Year ${year}` : "—" },
+              ...(selectedCourse?.hasBranch
+                ? [{ label: "Branch", value: branch || "—" }]
+                : []),
+              ...(branch === "CSE Specialization"
+                ? [{ label: "Specialization", value: specialization || "—" }]
+                : []),
+            ];
+
+      await exportSummaryPdf({
+        institutionName: level === "school" ? schoolName : collegeName,
+        institutionType: level === "school" ? "School" : "College",
+        details,
+        students: students.map((s) => ({
+          roll: s.roll,
+          name: s.name,
+          section: s.section,
+          marks: s.marks
+            .filter((m) => m.trim() !== "" && !isNaN(Number(m)))
+            .map(Number),
+          total: totals[s.id] ?? 0,
+        })),
+      });
+      toast.success("PDF report downloaded.");
+    } catch {
+      toast.error("Could not generate the PDF. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header banner */}
