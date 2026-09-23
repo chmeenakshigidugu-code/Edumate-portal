@@ -924,10 +924,16 @@ function AcademicPortal() {
               <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={startOver} variant="outline">
-              <RotateCcw className="h-4 w-4" />
-              Start over
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={startOver} variant="outline">
+                <RotateCcw className="h-4 w-4" />
+                Start over
+              </Button>
+              <Button onClick={handleExportPdf} disabled={exporting}>
+                <Download className="h-4 w-4" />
+                {exporting ? "Preparing…" : "Download PDF report"}
+              </Button>
+            </div>
           )}
         </div>
       </main>
