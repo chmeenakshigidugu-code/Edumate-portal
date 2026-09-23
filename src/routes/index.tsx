@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Building2,
   ClipboardList,
+  Download,
   GraduationCap,
   Hash,
   Layers,
@@ -54,6 +55,7 @@ import {
   getStreamLabel,
   type StreamKey,
 } from "@/lib/academic-config";
+import { exportSummaryPdf } from "@/lib/pdf-export";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -283,6 +285,58 @@ function AcademicPortal() {
     }
     return map;
   }, [students]);
+
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExportPdf() {
+    setExporting(true);
+    try {
+      const details: { label: string; value: string }[] =
+        level === "school"
+          ? [
+              { label: "Institution", value: schoolName },
+              { label: "Type", value: "School" },
+              { label: "Class", value: className ? `Class ${className}` : "—" },
+            ]
+          : [
+              { label: "Institution", value: collegeName },
+              { label: "Type", value: "College" },
+              {
+                label: "Stream",
+                value: streamKey ? getStreamLabel(streamKey) : "—",
+              },
+              { label: "Course", value: selectedCourse?.name ?? "—" },
+              { label: "Year", value: year ? `Year ${year}` : "—" },
+              ...(selectedCourse?.hasBranch
+                ? [{ label: "Branch", value: branch || "—" }]
+                : []),
+              ...(branch === "CSE Specialization"
+                ? [{ label: "Specialization", value: specialization || "—" }]
+                : []),
+            ];
+
+      await exportSummaryPdf({
+        institutionName: level === "school" ? schoolName : collegeName,
+        institutionType: level === "school" ? "School" : "College",
+        details,
+        students: students.map((s) => ({
+          roll: s.roll,
+          name: s.name,
+          section: s.section,
+          marks: s.marks
+            .filter((m) => m.trim() !== "" && !isNaN(Number(m)))
+            .map(Number),
+          total: totals[s.id] ?? 0,
+        })),
+      });
+      toast.success("PDF report downloaded.");
+    } catch {
+      toast.error("Could not generate the PDF. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -870,10 +924,16 @@ function AcademicPortal() {
               <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={startOver} variant="outline">
-              <RotateCcw className="h-4 w-4" />
-              Start over
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button onClick={startOver} variant="outline">
+                <RotateCcw className="h-4 w-4" />
+                Start over
+              </Button>
+              <Button onClick={handleExportPdf} disabled={exporting}>
+                <Download className="h-4 w-4" />
+                {exporting ? "Preparing…" : "Download PDF report"}
+              </Button>
+            </div>
           )}
         </div>
       </main>
