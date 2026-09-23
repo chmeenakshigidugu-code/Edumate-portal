@@ -55,6 +55,7 @@ import {
   getStreamLabel,
   type StreamKey,
 } from "@/lib/academic-config";
+import { exportSummaryPdf } from "@/lib/pdf-export";
 
 export const Route = createFileRoute("/")({
   head: () => ({
