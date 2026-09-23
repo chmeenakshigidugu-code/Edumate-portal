@@ -835,7 +835,7 @@ function AcademicPortal() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {students.map((s, i) => (
+                      {students.map((s) => (
                         <TableRow key={s.id}>
                           <TableCell className="font-medium">{s.roll}</TableCell>
                           <TableCell>{s.name}</TableCell>
