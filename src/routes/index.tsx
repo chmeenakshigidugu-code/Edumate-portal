@@ -843,7 +843,6 @@ function AcademicPortal() {
                           <TableCell className="text-right font-semibold text-primary">
                             {totals[s.id]?.toFixed(2)}
                           </TableCell>
-                          {i === 0 ? null : null}
                         </TableRow>
                       ))}
                     </TableBody>
