@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Building2,
   ClipboardList,
+  Download,
   GraduationCap,
   Hash,
   Layers,
