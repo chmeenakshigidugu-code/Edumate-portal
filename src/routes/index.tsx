@@ -249,7 +249,7 @@ function AcademicPortal() {
     setStudents((prev) => [
       ...prev,
       {
-        id: prev.length ? prev[prev.length - 1].id + 1 : 1,
+        id: (prev.at(-1)?.id ?? 0) + 1,
         roll: "",
         name: "",
         section: "",
@@ -275,7 +275,7 @@ function AcademicPortal() {
   }
 
   const totals = useMemo(() => {
-    const map = new Record<number, number>();
+    const map: Record<number, number> = {};
     for (const s of students) {
       map[s.id] = s.marks
         .filter((m) => m.trim() !== "" && !isNaN(Number(m)))
