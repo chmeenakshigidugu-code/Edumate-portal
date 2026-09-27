@@ -757,7 +757,8 @@ function AcademicPortal() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-primary">
-                      Total: {totals[s.id]?.toFixed(2)}
+                      Total: {totals[s.id]?.obtained.toFixed(2)} /{" "}
+                      {totals[s.id]?.max.toFixed(2)}
                     </span>
                     {students.length > 1 && (
                       <Button
@@ -819,38 +820,76 @@ function AcademicPortal() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => addMark(s.id)}
+                        onClick={() => addSubject(s.id)}
                       >
                         <Plus className="h-4 w-4" />
                         Add subject
                       </Button>
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                      {s.marks.map((m, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <div className="relative">
-                            <Hash className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <div className="space-y-3">
+                      {s.subjects.map((sub, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-1 items-end gap-3 rounded-lg border border-border/60 bg-muted/30 p-3 sm:grid-cols-[1fr_120px_120px_auto]"
+                        >
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">
+                              Subject name
+                            </Label>
+                            <Input
+                              placeholder={`e.g. Mathematics`}
+                              value={sub.name}
+                              onChange={(e) =>
+                                updateSubject(s.id, idx, {
+                                  name: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">
+                              Max marks
+                            </Label>
                             <Input
                               type="number"
                               inputMode="decimal"
-                              placeholder={`S${idx + 1}`}
-                              value={m}
+                              placeholder="100"
+                              value={sub.maxMarks}
                               onChange={(e) =>
-                                updateMark(s.id, idx, e.target.value)
+                                updateSubject(s.id, idx, {
+                                  maxMarks: e.target.value,
+                                })
                               }
-                              className="w-28 pl-8"
                             />
                           </div>
-                          {s.marks.length > 1 && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">
+                              Obtained
+                            </Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={sub.obtained}
+                              onChange={(e) =>
+                                updateSubject(s.id, idx, {
+                                  obtained: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          {s.subjects.length > 1 ? (
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeMark(s.id, idx)}
+                              onClick={() => removeSubject(s.id, idx)}
                               aria-label="Remove subject"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
+                          ) : (
+                            <span className="hidden sm:block sm:w-9" />
                           )}
                         </div>
                       ))}
@@ -940,20 +979,46 @@ function AcademicPortal() {
                         <TableHead>Roll No</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Section</TableHead>
-                        <TableHead className="text-right">Total Marks</TableHead>
+                        <TableHead>Subjects</TableHead>
+                        <TableHead className="text-right">Obtained</TableHead>
+                        <TableHead className="text-right">Max Marks</TableHead>
+                        <TableHead className="text-right">Percentage</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {students.map((s) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="font-medium">{s.roll}</TableCell>
-                          <TableCell>{s.name}</TableCell>
-                          <TableCell>{s.section}</TableCell>
-                          <TableCell className="text-right font-semibold text-primary">
-                            {totals[s.id]?.toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {students.map((s) => {
+                        const t = totals[s.id] ?? { obtained: 0, max: 0 };
+                        const pct = t.max > 0 ? (t.obtained / t.max) * 100 : 0;
+                        return (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-medium">{s.roll}</TableCell>
+                            <TableCell>{s.name}</TableCell>
+                            <TableCell>{s.section}</TableCell>
+                            <TableCell className="max-w-56">
+                              <div className="flex flex-wrap gap-1">
+                                {s.subjects.map((sub, i) => (
+                                  <Badge
+                                    key={i}
+                                    variant="secondary"
+                                    className="font-normal"
+                                  >
+                                    {sub.name}: {sub.obtained}/{sub.maxMarks}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-primary">
+                              {t.obtained.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {t.max.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {pct.toFixed(1)}%
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
