@@ -1,9 +1,16 @@
+export type PdfSubject = {
+  name: string;
+  maxMarks: number;
+  obtained: number;
+};
+
 export type PdfStudent = {
   roll: string;
   name: string;
   section: string;
-  marks: number[];
+  subjects: PdfSubject[];
   total: number;
+  maxTotal: number;
 };
 
 export type PdfExportData = {
@@ -78,10 +85,13 @@ export async function exportSummaryPdf(data: PdfExportData) {
   doc.text("Student Records", margin, cursorY);
   cursorY += 10;
 
-  const maxSubjects = data.students.reduce(
-    (m, s) => Math.max(m, s.marks.length),
-    0,
-  );
+  // Collect subject columns in order of first appearance across students
+  const subjectNames: string[] = [];
+  for (const s of data.students) {
+    for (const sub of s.subjects) {
+      if (!subjectNames.includes(sub.name)) subjectNames.push(sub.name);
+    }
+  }
 
   const head = [
     [
@@ -89,23 +99,32 @@ export async function exportSummaryPdf(data: PdfExportData) {
       "Roll No",
       "Name",
       "Section",
-      ...Array.from({ length: maxSubjects }, (_, i) => `S${i + 1}`),
+      ...subjectNames,
       "Total",
+      "Max",
+      "%",
     ],
   ];
 
-  const body = data.students.map((s, i) => [
-    String(i + 1),
-    s.roll || "—",
-    s.name || "—",
-    s.section || "—",
-    ...Array.from({ length: maxSubjects }, (_, j) =>
-      s.marks[j] === undefined ? "—" : s.marks[j].toFixed(2),
-    ),
-    s.total.toFixed(2),
-  ]);
+  const body = data.students.map((s, i) => {
+    const pct = s.maxTotal > 0 ? (s.total / s.maxTotal) * 100 : 0;
+    return [
+      String(i + 1),
+      s.roll || "—",
+      s.name || "—",
+      s.section || "—",
+      ...subjectNames.map((name) => {
+        const sub = s.subjects.find((x) => x.name === name);
+        return sub ? `${sub.obtained.toFixed(2)} / ${sub.maxMarks.toFixed(0)}` : "—";
+      }),
+      s.total.toFixed(2),
+      s.maxTotal.toFixed(0),
+      `${pct.toFixed(1)}%`,
+    ];
+  });
 
   const grandTotal = data.students.reduce((acc, s) => acc + s.total, 0);
+  const grandMax = data.students.reduce((acc, s) => acc + s.maxTotal, 0);
   const average = data.students.length ? grandTotal / data.students.length : 0;
 
   autoTable(doc, {
@@ -114,12 +133,16 @@ export async function exportSummaryPdf(data: PdfExportData) {
     head,
     body,
     theme: "striped",
-    styles: { font: "helvetica", fontSize: 9, cellPadding: 5 },
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: INDIGO, textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [247, 248, 255] },
     columnStyles: {
-      0: { cellWidth: 24, halign: "center" },
-      [4 + maxSubjects]: { fontStyle: "bold", halign: "right", textColor: INDIGO },
+      0: { cellWidth: 20, halign: "center" },
+      [4 + subjectNames.length]: {
+        fontStyle: "bold",
+        halign: "right",
+        textColor: INDIGO,
+      },
     },
   });
 
@@ -131,7 +154,7 @@ export async function exportSummaryPdf(data: PdfExportData) {
     theme: "plain",
     body: [
       ["Total students", String(data.students.length)],
-      ["Grand total marks", grandTotal.toFixed(2)],
+      ["Grand total marks", `${grandTotal.toFixed(2)} / ${grandMax.toFixed(0)}`],
       ["Average per student", average.toFixed(2)],
     ],
     styles: { font: "helvetica", fontSize: 10, cellPadding: 4 },
