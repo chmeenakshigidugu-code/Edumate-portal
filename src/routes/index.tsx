@@ -201,14 +201,35 @@ function AcademicPortal() {
         toast.error(`Student ${idx}: enter a section.`);
         return false;
       }
-      const validMarks = s.marks.filter((m) => m.trim() !== "");
-      if (validMarks.length === 0) {
-        toast.error(`Student ${idx}: add at least one subject mark.`);
+      if (s.subjects.length === 0) {
+        toast.error(`Student ${idx}: add at least one subject.`);
         return false;
       }
-      if (validMarks.some((m) => isNaN(Number(m)))) {
-        toast.error(`Student ${idx}: all marks must be numbers.`);
-        return false;
+      for (const sub of s.subjects) {
+        if (!sub.name.trim()) {
+          toast.error(`Student ${idx}: every subject needs a name.`);
+          return false;
+        }
+        const max = Number(sub.maxMarks);
+        const obt = Number(sub.obtained);
+        if (sub.maxMarks.trim() === "" || isNaN(max) || max <= 0) {
+          toast.error(
+            `Student ${idx}: max marks for "${sub.name || "a subject"}" must be a positive number.`,
+          );
+          return false;
+        }
+        if (sub.obtained.trim() === "" || isNaN(obt) || obt < 0) {
+          toast.error(
+            `Student ${idx}: obtained marks for "${sub.name || "a subject"}" must be a number.`,
+          );
+          return false;
+        }
+        if (obt > max) {
+          toast.error(
+            `Student ${idx}: obtained marks cannot exceed max marks for "${sub.name}".`,
+          );
+          return false;
+        }
       }
     }
     return true;
@@ -233,27 +254,38 @@ function AcademicPortal() {
     );
   }
 
-  function updateMark(id: number, index: number, value: string) {
+  function updateSubject(
+    id: number,
+    index: number,
+    patch: Partial<SubjectEntry>,
+  ) {
     setStudents((prev) =>
       prev.map((s) =>
         s.id === id
-          ? { ...s, marks: s.marks.map((m, i) => (i === index ? value : m)) }
+          ? {
+              ...s,
+              subjects: s.subjects.map((sub, i) =>
+                i === index ? { ...sub, ...patch } : sub,
+              ),
+            }
           : s,
       ),
     );
   }
 
-  function addMark(id: number) {
+  function addSubject(id: number) {
     setStudents((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, marks: [...s.marks, ""] } : s)),
+      prev.map((s) =>
+        s.id === id ? { ...s, subjects: [...s.subjects, emptySubject()] } : s,
+      ),
     );
   }
 
-  function removeMark(id: number, index: number) {
+  function removeSubject(id: number, index: number) {
     setStudents((prev) =>
       prev.map((s) =>
         s.id === id
-          ? { ...s, marks: s.marks.filter((_, i) => i !== index) }
+          ? { ...s, subjects: s.subjects.filter((_, i) => i !== index) }
           : s,
       ),
     );
@@ -267,7 +299,7 @@ function AcademicPortal() {
         roll: "",
         name: "",
         section: "",
-        marks: [""],
+        subjects: [emptySubject()],
       },
     ]);
   }
@@ -284,16 +316,24 @@ function AcademicPortal() {
     setCollegeName("");
     setStreamKey("");
     resetCollegeFields();
-    setStudents([{ id: 1, roll: "", name: "", section: "", marks: [""] }]);
+    setStudents([
+      { id: 1, roll: "", name: "", section: "", subjects: [emptySubject()] },
+    ]);
     toast.success("All records cleared.");
   }
 
   const totals = useMemo(() => {
-    const map: Record<number, number> = {};
+    const map: Record<number, { obtained: number; max: number }> = {};
     for (const s of students) {
-      map[s.id] = s.marks
-        .filter((m) => m.trim() !== "" && !isNaN(Number(m)))
-        .reduce((acc, m) => acc + Number(m), 0);
+      let obtained = 0;
+      let max = 0;
+      for (const sub of s.subjects) {
+        const o = Number(sub.obtained);
+        const m = Number(sub.maxMarks);
+        if (!isNaN(o) && sub.obtained.trim() !== "") obtained += o;
+        if (!isNaN(m) && sub.maxMarks.trim() !== "") max += m;
+      }
+      map[s.id] = { obtained, max };
     }
     return map;
   }, [students]);
@@ -335,10 +375,13 @@ function AcademicPortal() {
           roll: s.roll,
           name: s.name,
           section: s.section,
-          marks: s.marks
-            .filter((m) => m.trim() !== "" && !isNaN(Number(m)))
-            .map(Number),
-          total: totals[s.id] ?? 0,
+          subjects: s.subjects.map((sub) => ({
+            name: sub.name,
+            maxMarks: Number(sub.maxMarks) || 0,
+            obtained: Number(sub.obtained) || 0,
+          })),
+          total: totals[s.id]?.obtained ?? 0,
+          maxTotal: totals[s.id]?.max ?? 0,
         })),
       });
       toast.success("PDF report downloaded.");
