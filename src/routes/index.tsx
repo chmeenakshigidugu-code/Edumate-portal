@@ -81,13 +81,25 @@ export const Route = createFileRoute("/")({
 
 type Level = "school" | "college";
 
+type SubjectEntry = {
+  name: string;
+  maxMarks: string;
+  obtained: string;
+};
+
 type Student = {
   id: number;
   roll: string;
   name: string;
   section: string;
-  marks: string[];
+  subjects: SubjectEntry[];
 };
+
+const emptySubject = (): SubjectEntry => ({
+  name: "",
+  maxMarks: "100",
+  obtained: "",
+});
 
 const STEPS = [
   { id: 1, label: "Academic Details", icon: GraduationCap },
@@ -113,7 +125,7 @@ function AcademicPortal() {
 
   // Students
   const [students, setStudents] = useState<Student[]>([
-    { id: 1, roll: "", name: "", section: "", marks: [""] },
+    { id: 1, roll: "", name: "", section: "", subjects: [emptySubject()] },
   ]);
 
   const courses = streamKey ? COURSES[streamKey] : [];
